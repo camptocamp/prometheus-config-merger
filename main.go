@@ -16,9 +16,10 @@ import (
 var version = "undefined"
 
 type Config struct {
-	Version bool   `short:"V" long:"version" description:"Display version."`
-	Sleep   string `short:"s" long:"sleep" description:"Sleep time between queries." env:"PROMETHEUS_CONFIG_MERGER_SLEEP" default:"5s"`
-	Manpage bool   `short:"m" long:"manpage" description:"Output manpage."`
+	Version   bool   `short:"V" long:"version" description:"Display version."`
+	ConfigDir string `short:"c" long:"configdir" description:"Prometheus configuration directory." env:"PROMETHEUS_CONFIG_DIR" default:"/etc/prometheus"`
+	Sleep     string `short:"s" long:"sleep" description:"Sleep time between queries." env:"PROMETHEUS_CONFIG_MERGER_SLEEP" default:"5s"`
+	Manpage   bool   `short:"m" long:"manpage" description:"Output manpage."`
 }
 
 /*
@@ -102,7 +103,7 @@ func main() {
 	for {
 		var config interface{}
 
-		files, _ := filepath.Glob("/etc/prometheus/conf.d/*.yml")
+		files, _ := filepath.Glob(fmt.Sprintf("%s/conf.d/*.yml", cfg.ConfigDir))
 		for i := range files {
 			// Read
 			raw, err := ioutil.ReadFile(files[i])
