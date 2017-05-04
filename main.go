@@ -1,12 +1,25 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/ghodss/yaml"
 	"io/ioutil"
+	"os"
 	"path/filepath"
+	"time"
+
+	"github.com/ghodss/yaml"
+	"github.com/jessevdk/go-flags"
 )
+
+var version = "undefined"
+
+type Config struct {
+	Version bool   `short:"V" long:"version" description:"Display version."`
+	Sleep   string `short:"s" long:"sleep" description:"Sleep time between queries." env:"PROMETHEUS_CONFIG_MERGER_SLEEP" default:"5s"`
+	Manpage bool   `short:"m" long:"manpage" description:"Output manpage."`
+}
 
 /*
 NOTE: adapted from https://play.golang.org/p/8jlJUbEJKf to support merging slices
@@ -74,32 +87,71 @@ func merge1(x1, x2 interface{}) interface{} {
 }
 
 func main() {
-	var config interface{}
-
-	files, _ := filepath.Glob("/etc/prometheus/conf.d/*.yml")
-	for i := range files {
-		// Read
-		raw, err := ioutil.ReadFile(files[i])
-		if err != nil {
-			fmt.Println(err.Error())
-		}
-
-		// Unmarshal
-		var c map[string]interface{}
-		err = yaml.Unmarshal(raw, &c)
-		if err != nil {
-			fmt.Println(err.Error())
-		}
-
-		// Merge
-		config, err = merge(c, config)
-		if err != nil {
-			fmt.Println(err.Error())
-		}
-	}
-	data, err := yaml.Marshal(config)
+	cfg, err := loadConfig(version)
 	if err != nil {
-		fmt.Println(err.Error())
+		fmt.Println(err)
+		os.Exit(1)
 	}
-	fmt.Printf("%s\n", data)
+
+	sleep, err := time.ParseDuration(cfg.Sleep)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	for {
+		var config interface{}
+
+		files, _ := filepath.Glob("/etc/prometheus/conf.d/*.yml")
+		for i := range files {
+			// Read
+			raw, err := ioutil.ReadFile(files[i])
+			if err != nil {
+				fmt.Println(err.Error())
+			}
+
+			// Unmarshal
+			var c map[string]interface{}
+			err = yaml.Unmarshal(raw, &c)
+			if err != nil {
+				fmt.Println(err.Error())
+			}
+
+			// Merge
+			config, err = merge(c, config)
+			if err != nil {
+				fmt.Println(err.Error())
+			}
+		}
+		data, err := yaml.Marshal(config)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+		fmt.Printf("%s\n", data)
+		fmt.Printf("Sleeping for %v\n", sleep)
+		time.Sleep(sleep)
+	}
+}
+
+func loadConfig(version string) (c Config, err error) {
+	parser := flags.NewParser(&c, flags.Default)
+	_, err = parser.Parse()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	if c.Version {
+		fmt.Printf("Prometheus-config-merger v%v\n", version)
+		os.Exit(0)
+	}
+
+	if c.Manpage {
+		var buf bytes.Buffer
+		parser.ShortDescription = "Prometheus configuration merger"
+		parser.WriteManPage(&buf)
+		fmt.Printf(buf.String())
+		os.Exit(0)
+	}
+	return
 }
