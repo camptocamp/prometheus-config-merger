@@ -128,7 +128,10 @@ func main() {
 		if err != nil {
 			fmt.Println(err.Error())
 		}
-		fmt.Printf("%s\n", data)
+		err = ioutil.WriteFile(fmt.Sprintf("%s/prometheus.yml", cfg.ConfigDir), data, 0644)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
 		fmt.Printf("Sleeping for %v\n", sleep)
 		time.Sleep(sleep)
 	}
