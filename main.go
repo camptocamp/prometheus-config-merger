@@ -18,7 +18,7 @@ var version = "undefined"
 
 type Config struct {
 	Version            bool   `short:"V" long:"version" description:"Display version."`
-	ConfigDir          string `short:"c" long:"configdir" description:"Prometheus configuration directory." env:"PROMETHEUS_CONFIG_DIR" default:"/etc/prometheus"`
+	ConfigDir          string `short:"c" long:"config-dir" description:"Prometheus configuration directory." env:"PROMETHEUS_CONFIG_DIR" default:"/etc/prometheus"`
 	PrometheusScheme   string `long:"prometheus-scheme" description:"Prometheus server scheme." env:"PROMETHEUS_SERVER_SCHEME" default:"http"`
 	PrometheusHostname string `long:"prometheus-hostname" description:"Prometheus server hostname." env:"PROMETHEUS_SERVER_HOSTNAME" default:"localhost"`
 	PrometheusPort     string `long:"prometheus-port" description:"Prometheus server port." env:"PROMETHEUS_SERVER_PORT" default:"9090"`
