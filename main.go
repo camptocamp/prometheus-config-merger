@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 	"time"
@@ -16,10 +17,13 @@ import (
 var version = "undefined"
 
 type Config struct {
-	Version   bool   `short:"V" long:"version" description:"Display version."`
-	ConfigDir string `short:"c" long:"configdir" description:"Prometheus configuration directory." env:"PROMETHEUS_CONFIG_DIR" default:"/etc/prometheus"`
-	Sleep     string `short:"s" long:"sleep" description:"Sleep time between queries." env:"PROMETHEUS_CONFIG_MERGER_SLEEP" default:"5s"`
-	Manpage   bool   `short:"m" long:"manpage" description:"Output manpage."`
+	Version            bool   `short:"V" long:"version" description:"Display version."`
+	ConfigDir          string `short:"c" long:"configdir" description:"Prometheus configuration directory." env:"PROMETHEUS_CONFIG_DIR" default:"/etc/prometheus"`
+	PrometheusScheme   string `long:"prometheus-scheme" description:"Prometheus server scheme." env:"PROMETHEUS_SERVER_SCHEME" default:"http"`
+	PrometheusHostname string `long:"prometheus-hostname" description:"Prometheus server hostname." env:"PROMETHEUS_SERVER_HOSTNAME" default:"localhost"`
+	PrometheusPort     string `long:"prometheus-port" description:"Prometheus server port." env:"PROMETHEUS_SERVER_PORT" default:"9090"`
+	Sleep              string `short:"s" long:"sleep" description:"Sleep time between queries." env:"PROMETHEUS_CONFIG_MERGER_SLEEP" default:"5s"`
+	Manpage            bool   `short:"m" long:"manpage" description:"Output manpage."`
 }
 
 /*
@@ -100,6 +104,16 @@ func main() {
 		os.Exit(1)
 	}
 
+	prometheusReloadURL := fmt.Sprintf("%s://%s:%s/-/reload", cfg.PrometheusScheme, cfg.PrometheusHostname, cfg.PrometheusPort)
+
+	client := &http.Client{}
+
+	req, err := http.NewRequest("POST", prometheusReloadURL, nil)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
 	for {
 		var config interface{}
 
@@ -132,6 +146,12 @@ func main() {
 		if err != nil {
 			fmt.Println(err.Error())
 		}
+
+		_, err = client.Do(req)
+		if err != nil {
+			fmt.Println(err)
+		}
+
 		fmt.Printf("Sleeping for %v\n", sleep)
 		time.Sleep(sleep)
 	}
