@@ -114,6 +114,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	fmt.Printf("Startup successful, now going to check for config changes every %v\n", sleep)
 	for {
 		var config interface{}
 
@@ -142,17 +143,24 @@ func main() {
 		if err != nil {
 			fmt.Println(err.Error())
 		}
-		err = ioutil.WriteFile(fmt.Sprintf("%s/prometheus.yml", cfg.ConfigDir), data, 0644)
+
+		currentConfig, err := ioutil.ReadFile(fmt.Sprintf("%s/prometheus.yml", cfg.ConfigDir))
 		if err != nil {
 			fmt.Println(err.Error())
 		}
 
-		_, err = client.Do(req)
-		if err != nil {
-			fmt.Println(err)
+		if !bytes.Equal(currentConfig, data) {
+			fmt.Print("Merged config differs from on-disk version, about to reload prometheus\n")
+			err = ioutil.WriteFile(fmt.Sprintf("%s/prometheus.yml", cfg.ConfigDir), data, 0644)
+			if err != nil {
+				fmt.Println(err.Error())
+			}
+			_, err = client.Do(req)
+			if err != nil {
+				fmt.Println(err)
+			}
 		}
 
-		fmt.Printf("Sleeping for %v\n", sleep)
 		time.Sleep(sleep)
 	}
 }
