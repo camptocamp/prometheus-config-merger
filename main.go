@@ -153,7 +153,7 @@ func main() {
 		data, err := yaml.Marshal(config)
 		if err != nil {
 			fmt.Println(err.Error())
-			continue;
+			continue
 		}
 
 		currentConfig, err := ioutil.ReadFile(fmt.Sprintf("%s/prometheus.yml", cfg.ConfigDir))
@@ -166,7 +166,7 @@ func main() {
 			err = ioutil.WriteFile(fmt.Sprintf("%s/prometheus.yml", cfg.ConfigDir), data, 0644)
 			if err != nil {
 				fmt.Println(err.Error())
-				continue;
+				continue
 			}
 			_, err = client.Do(req)
 			if err != nil {
