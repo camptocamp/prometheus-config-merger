@@ -117,6 +117,9 @@ func main() {
 	fmt.Printf("Startup successful, now going to check for config changes every %v\n", sleep)
 	for {
 		var config interface{}
+		var success bool = true
+
+		time.Sleep(sleep)
 
 		files, _ := filepath.Glob(fmt.Sprintf("%s/conf.d/*.yml", cfg.ConfigDir))
 		for i := range files {
@@ -124,6 +127,7 @@ func main() {
 			raw, err := ioutil.ReadFile(files[i])
 			if err != nil {
 				fmt.Println(err.Error())
+				success = false
 			}
 
 			// Unmarshal
@@ -131,17 +135,25 @@ func main() {
 			err = yaml.Unmarshal(raw, &c)
 			if err != nil {
 				fmt.Println(err.Error())
+				success = false
 			}
 
 			// Merge
 			config, err = merge(c, config)
 			if err != nil {
 				fmt.Println(err.Error())
+				success = false
 			}
 		}
+
+		if !success {
+			continue
+		}
+
 		data, err := yaml.Marshal(config)
 		if err != nil {
 			fmt.Println(err.Error())
+			continue;
 		}
 
 		currentConfig, err := ioutil.ReadFile(fmt.Sprintf("%s/prometheus.yml", cfg.ConfigDir))
@@ -154,14 +166,13 @@ func main() {
 			err = ioutil.WriteFile(fmt.Sprintf("%s/prometheus.yml", cfg.ConfigDir), data, 0644)
 			if err != nil {
 				fmt.Println(err.Error())
+				continue;
 			}
 			_, err = client.Do(req)
 			if err != nil {
 				fmt.Println(err)
 			}
 		}
-
-		time.Sleep(sleep)
 	}
 }
 
