@@ -1,4 +1,4 @@
-FROM golang:1.8 as builder
+FROM golang:1.13 as builder
 WORKDIR /go/src/github.com/camptocamp/prometheus-config-merger/
 COPY main.go .
 COPY Makefile .
