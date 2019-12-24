@@ -17,13 +17,14 @@ import (
 var version = "undefined"
 
 type Config struct {
-	Version            bool   `short:"V" long:"version" description:"Display version."`
-	ConfigDir          string `short:"c" long:"config-dir" description:"Prometheus configuration directory." env:"PROMETHEUS_CONFIG_DIR" default:"/etc/prometheus"`
-	PrometheusScheme   string `long:"prometheus-scheme" description:"Prometheus server scheme." env:"PROMETHEUS_SERVER_SCHEME" default:"http"`
-	PrometheusHostname string `long:"prometheus-hostname" description:"Prometheus server hostname." env:"PROMETHEUS_SERVER_HOSTNAME" default:"localhost"`
-	PrometheusPort     string `long:"prometheus-port" description:"Prometheus server port." env:"PROMETHEUS_SERVER_PORT" default:"9090"`
-	Sleep              string `short:"s" long:"sleep" description:"Sleep time between queries." env:"PROMETHEUS_CONFIG_MERGER_SLEEP" default:"5s"`
-	Manpage            bool   `short:"m" long:"manpage" description:"Output manpage."`
+	Version            bool     `short:"V" long:"version" description:"Display version."`
+	ConfigDir          string   `short:"c" long:"config-dir" description:"Prometheus configuration directory." env:"PROMETHEUS_CONFIG_DIR" default:"/etc/prometheus"`
+	ConfigFiles        []string `short:"f" long:"config-files" description:"Prometheus configuration files to merge." env:"PROMETHEUS_CONFIG_FILES" default:"/etc/prometheus/conf.d/*.yml"`
+	PrometheusScheme   string   `long:"prometheus-scheme" description:"Prometheus server scheme." env:"PROMETHEUS_SERVER_SCHEME" default:"http"`
+	PrometheusHostname string   `long:"prometheus-hostname" description:"Prometheus server hostname." env:"PROMETHEUS_SERVER_HOSTNAME" default:"localhost"`
+	PrometheusPort     string   `long:"prometheus-port" description:"Prometheus server port." env:"PROMETHEUS_SERVER_PORT" default:"9090"`
+	Sleep              string   `short:"s" long:"sleep" description:"Sleep time between queries." env:"PROMETHEUS_CONFIG_MERGER_SLEEP" default:"5s"`
+	Manpage            bool     `short:"m" long:"manpage" description:"Output manpage."`
 }
 
 /*
@@ -121,28 +122,31 @@ func main() {
 
 		time.Sleep(sleep)
 
-		files, _ := filepath.Glob(fmt.Sprintf("%s/conf.d/*.yml", cfg.ConfigDir))
-		for i := range files {
-			// Read
-			raw, err := ioutil.ReadFile(files[i])
-			if err != nil {
-				fmt.Println(err.Error())
-				success = false
-			}
+		for _, f := range cfg.ConfigFiles {
+			fmt.Printf("Merging files: %v\n", f)
+			files, _ := filepath.Glob(f)
+			for i := range files {
+				// Read
+				raw, err := ioutil.ReadFile(files[i])
+				if err != nil {
+					fmt.Println(err.Error())
+					success = false
+				}
 
-			// Unmarshal
-			var c map[string]interface{}
-			err = yaml.Unmarshal(raw, &c)
-			if err != nil {
-				fmt.Println(err.Error())
-				success = false
-			}
+				// Unmarshal
+				var c map[string]interface{}
+				err = yaml.Unmarshal(raw, &c)
+				if err != nil {
+					fmt.Println(err.Error())
+					success = false
+				}
 
-			// Merge
-			config, err = merge(c, config)
-			if err != nil {
-				fmt.Println(err.Error())
-				success = false
+				// Merge
+				config, err = merge(c, config)
+				if err != nil {
+					fmt.Println(err.Error())
+					success = false
+				}
 			}
 		}
 
